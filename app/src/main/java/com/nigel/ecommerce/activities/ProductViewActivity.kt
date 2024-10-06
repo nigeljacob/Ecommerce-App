@@ -228,6 +228,32 @@ fun ProductViewActivityLayout(onClose: () -> Unit) {
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.secondaryContainer)
         ) {
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp, top = 40.dp)
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .width(50.dp)
+                        .height(50.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.background)
+                        .clickable {
+                            onClose()
+                        }
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowLeft,
+                        contentDescription = "Icon",
+                        modifier = Modifier.width(80.dp)
+                    )
+                }
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -241,34 +267,11 @@ fun ProductViewActivityLayout(onClose: () -> Unit) {
                     contentDescription = "Image from URL",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(imageContainerHeight.dp),
-                    contentScale = ContentScale.Crop
+                        .height(imageContainerHeight.dp)
+                        .clip(RoundedCornerShape(10.dp)),
+                    contentScale = ContentScale.Fit
                 )
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp, top = 40.dp)
-                ) {
-                    Column(
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .width(50.dp)
-                            .height(50.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.background)
-                            .clickable {
-                                onClose()
-                            }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.KeyboardArrowLeft,
-                            contentDescription = "Icon",
-                            modifier = Modifier.width(80.dp)
-                        )
-                    }
-                }
             }
 
             Box(

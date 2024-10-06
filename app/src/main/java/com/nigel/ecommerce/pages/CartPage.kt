@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,7 +28,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
@@ -58,12 +56,9 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.nigel.ecommerce.activities.LoginActivity
-import com.nigel.ecommerce.activities.LoginActivityLayout
-import com.nigel.ecommerce.activities.ProductViewActivity
+import com.nigel.ecommerce.activities.CheckoutActivity
 import com.nigel.ecommerce.models.Product
 import com.nigel.ecommerce.ui.theme.EcommerceTheme
-import kotlin.math.log
 
 private fun updateCart(context: Context, products: MutableList<Product>, quantities: MutableList<Int>) {
     val sharedPreferences = context.getSharedPreferences("EcommercePreference", Context.MODE_PRIVATE)
@@ -106,10 +101,18 @@ private fun getCartItemsQuantities(context: Context): List<Int> {
     }
 }
 
+private fun openActivity(context: Context, products: MutableList<Product>, quantities: MutableList<Int>, deliveryAddress: String, total: Double, userId: String) {
+    val intent: Intent = Intent(context, CheckoutActivity::class.java)
+    intent.putExtra("deliveryAddress", deliveryAddress)
+    intent.putExtra("total", total)
+    intent.putExtra("products", ArrayList(products))
+    intent.putExtra("quantity", ArrayList(quantities))
+    intent.putExtra("userID", userId)
+    context.startActivity(intent)
+}
 
-@Preview(showBackground = true)
 @Composable
-fun CartPage(modifier: Modifier = Modifier) {
+fun CartPage(modifier: Modifier = Modifier, id: String) {
 
     var context = LocalContext.current
 
@@ -132,6 +135,8 @@ fun CartPage(modifier: Modifier = Modifier) {
             }
         }
     }
+    
+    var deliveryAddress by remember { mutableStateOf("") }
 
     var selectAll by rememberSaveable { mutableStateOf(false) }
 
@@ -178,6 +183,11 @@ fun CartPage(modifier: Modifier = Modifier) {
         if(!atleastOne) {
             atleastOneSelected = false
         }
+    }
+
+    LaunchedEffect(Unit) {
+        val sharedPreferences: SharedPreferences = context.getSharedPreferences("EcommercePreference", Context.MODE_PRIVATE)
+        deliveryAddress = sharedPreferences.getString("deliveryAddress", null) ?: "Not Set Yet"
     }
 
     EcommerceTheme {
@@ -244,14 +254,9 @@ fun CartPage(modifier: Modifier = Modifier) {
                                     modifier = Modifier.width(20.dp)
                                 )
 
-                                Text("92 High Street, London", fontSize = 14.sp, modifier = Modifier.padding(start = 5.dp).weight(1f))
+                                Text(deliveryAddress, fontSize = 14.sp, modifier = Modifier.padding(start = 5.dp).weight(1f))
 
-                                Icon(
-                                    imageVector = Icons.Filled.KeyboardArrowRight,
-                                    contentDescription = "Icon",
-                                    tint = Color(0xffa7a7a7),
-                                    modifier = Modifier.width(20.dp)
-                                )
+                                
 
                                 Spacer(modifier = Modifier.width(5.dp))
                             }
@@ -490,7 +495,17 @@ fun CartPage(modifier: Modifier = Modifier) {
                         .clip(RoundedCornerShape(10.dp))
                         .background(Color(0xFFc3e703))
                         .clickable {
-
+                            if(atleastOneSelected) {
+                                var cartItemsArray = mutableListOf<Product>()
+                                var cartQuantity = mutableListOf<Int>()
+                                for(selected in 0 until cartItemsSelected.size) {
+                                    if(cartItemsSelected[selected]) {
+                                        cartItemsArray.add(cartItems[selected])
+                                        cartQuantity.add(cartItemsQuantity[selected])
+                                    }
+                                }
+                                openActivity(context, cartItemsArray, cartQuantity, deliveryAddress, cartTotal, id)
+                            }
                         }
                 ) {
                     Text("Checkout - $" + String.format("%.2f", cartTotal) , fontWeight = FontWeight.Bold, color = Color.Black)
@@ -499,4 +514,10 @@ fun CartPage(modifier: Modifier = Modifier) {
 
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun cartPreview() {
+    CartPage(Modifier, "")
 }

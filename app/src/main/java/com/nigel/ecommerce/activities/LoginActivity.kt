@@ -77,6 +77,7 @@ import com.nigel.ecommerce.activities.ui.theme.EcommerceTheme
 import com.nigel.ecommerce.pages.getProducts
 import com.nigel.ecommerce.repository.AuthRepository
 import com.nigel.ecommerce.services.ApiService
+import com.nigel.ecommerce.utils.SharedPreferenceHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -333,15 +334,6 @@ fun LoginActivityLayout(onClose: () -> Unit) {
                     }
                 }
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.End,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 10.dp, end = 20.dp)
-                ) {
-                    Text("Forgot Password ?", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.secondary)
-                }
 
                 Column(
                     verticalArrangement = Arrangement.Center,
@@ -379,8 +371,21 @@ fun LoginActivityLayout(onClose: () -> Unit) {
                                             ) { success, message ->
                                                 println(message)
                                                 if (success) {
-                                                    openActivity(context, "Main")
-                                                    onClose()
+                                                    scope.launch {
+                                                       withContext(Dispatchers.IO) {
+                                                           var user = authRepository.getUserDetails()
+                                                           if(user!!.active) {
+                                                               openActivity(context, "Main")
+                                                               onClose()
+                                                           } else {
+                                                               alertTitle = "Account Not Activated"
+                                                               alertMessage =
+                                                                   "This account is not yet activated"
+                                                               showAlert = true
+                                                               SharedPreferenceHelper.clearTokens(context)
+                                                           }
+                                                       }
+                                                    }
                                                 } else {
                                                     if (message.equals("User not found")) {
                                                         alertTitle = "User not found"

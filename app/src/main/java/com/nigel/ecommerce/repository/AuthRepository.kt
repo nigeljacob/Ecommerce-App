@@ -2,8 +2,6 @@ package com.nigel.ecommerce.repository
 
 import android.content.Context
 import android.provider.ContactsContract.CommonDataKinds.Email
-import com.nigel.ecommerce.models.ApiResponse
-import com.nigel.ecommerce.models.TokenResponse
 import com.nigel.ecommerce.models.User
 import com.nigel.ecommerce.services.ApiService
 import com.nigel.ecommerce.utils.SharedPreferenceHelper
@@ -36,7 +34,7 @@ class AuthRepository(private val context: Context) {
             if(response.isSuccessful) {
                 if(message.equals("Login successful")) {
                     val token = response.body()?.get("data") as Map<String, Any>
-                    SharedPreferenceHelper.saveAccessToken(context, token.get("token") as String)
+                    SharedPreferenceHelper.saveAccessToken(context, token.get("token") as String, email, password)
                     println(token.get("token"))
                     onResponse(true, message ?: "Success")
                 }
@@ -52,6 +50,25 @@ class AuthRepository(private val context: Context) {
         }
     }
 
+    suspend fun refreshAccessToken(onResponse: (success: Boolean, message: String) -> Unit) {
+        withContext(Dispatchers.IO) {
+            val requestBody = SharedPreferenceHelper.getCredentials(context)
+            println(requestBody)
+            val response = apiService.login(requestBody).execute()
+            val message = response.body()?.get("message") as String?
+
+            if(response.isSuccessful) {
+                if(message.equals("Login successful")) {
+                    val token = response.body()?.get("data") as Map<String, Any>
+                    SharedPreferenceHelper.saveAccessToken(context, token.get("token") as String, requestBody.get("email")!!, requestBody.get("password")!!)
+                    onResponse(true, "Refreshed")
+                }
+            } else {
+                println(response)
+            }
+        }
+    }
+
     suspend fun getUserDetails(): User? {
 
         val token = "Bearer " + SharedPreferenceHelper.getAccessToken(context)
@@ -61,6 +78,7 @@ class AuthRepository(private val context: Context) {
         if(response.isSuccessful) {
             if(message.equals("Successful")) {
                 val tempUser = response.body()?.get("data") as Map<String, Any>
+                println(tempUser)
                 val newUser = User(
                     tempUser.get("id") as String?,
                     tempUser.get("name") as String?,
@@ -71,13 +89,42 @@ class AuthRepository(private val context: Context) {
                 )
                 return newUser
             }
+        } else {
+           if(!token.isEmpty() && response.code() == 401) {
+               refreshAccessToken() {success, message ->
+                   if(success) {
+                       suspend {
+                           getUserDetails()
+                       }
+                   }
+               }
+           }
         }
         return null
     }
 
 
-    fun signUp(name: String, email: String, password: String) {
-
+    suspend fun signUp(name: String, email: String, password: String, onResponse: (success: Boolean, message: String) -> Unit) {
+        val requestBody = mapOf(
+            "email" to email,
+            "password" to password,
+            "name" to name,
+        )
+        val response = apiService.register(requestBody).execute()
+        val message = response.body()?.get("message") as String?
+        if(response.isSuccessful) {
+            if(message.equals("Create successful")) {
+                onResponse(true, message ?: "Success")
+            }
+        } else {
+            if(response.code() == 401) {
+                onResponse(false, "Invalid password")
+            } else if(response.code() == 400) {
+                onResponse(false, "Email already in use. Try Login")
+            } else {
+                onResponse(false, "Unknown error occurred")
+            }
+        }
     }
 
     fun checkLogin(): Boolean {
@@ -89,7 +136,20 @@ class AuthRepository(private val context: Context) {
     }
 
     fun logout() {
+        SharedPreferenceHelper.clearTokens(context)
+    }
 
+    suspend fun deactivateAccount(id: String): Boolean {
+        val token = "Bearer " + SharedPreferenceHelper.getAccessToken(context)
+        val response = apiService.deactivateAccount(token, id).execute()
+        if(response.isSuccessful) {
+            SharedPreferenceHelper.clearTokens(context)
+            return true
+        } else {
+            println(response)
+        }
+
+        return false
     }
 
 }

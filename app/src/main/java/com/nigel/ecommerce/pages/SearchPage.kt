@@ -35,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -110,21 +111,16 @@ private fun getFromSharedPreference(key: String, context: Context): String? {
 
 private fun openActivity(context: Context, product: Product) {
     val intent: Intent = Intent(context, ProductViewActivity::class.java)
-    intent.putExtra("hello", "hello")
-    intent.putExtra("productTitle", product.title)
-    intent.putExtra("productImageURL", product.imageURL[0])
-    intent.putExtra("productCategory", product.category)
-    intent.putExtra("productPrice", product.price)
-    intent.putExtra("productDescription", product.description)
+    intent.putExtra("product", product)
     context.startActivity(intent)
 }
 
 @Composable
-fun SearchPage(modifier: Modifier = Modifier, products: MutableList<Product>) {
+fun SearchPage(modifier: Modifier = Modifier, products: MutableList<Product>, searchText: String) {
 
     val context = LocalContext.current
 
-    var searchQuery by remember { mutableStateOf("") }
+    var searchQuery by remember { mutableStateOf(searchText) }
 
     val focusManager = LocalFocusManager.current
 
@@ -151,6 +147,21 @@ fun SearchPage(modifier: Modifier = Modifier, products: MutableList<Product>) {
     var containerHeight by remember { mutableStateOf(0) }
 
     var searchConducted by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        if(!searchText.equals("")) {
+            searchConducted = false
+            searchResults.clear()
+            focusManager.clearFocus()
+            val results = getProducts(searchQuery, products)
+            searchResults.addAll(results)
+            if(!previousSearch.split(";;")[0].equals(searchQuery)) {
+                writeToSharedPreference(searchQuery, context)
+                previousSearch = searchQuery + ";;" + previousSearch
+            }
+            searchConducted = true
+        }
+    }
 
     EcommerceTheme {
         Column(
@@ -364,25 +375,28 @@ fun SearchPage(modifier: Modifier = Modifier, products: MutableList<Product>) {
 
                         Text(searchResults.size.toString() + " Results Found", fontSize = 17.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 20.dp, start = 20.dp, bottom = 10.dp))
 
-                        for (rowIndex in searchResults.indices step columns) {
-                            Row(modifier = Modifier.fillMaxWidth()) {
-                                for (columnIndex in 0 until columns) {
-                                    val index = rowIndex + columnIndex
-                                    if (index < searchResults.size) {
+                        val rows = searchResults.chunked(2)
+                        for (row in rows) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                for (product in row) {
+                                    Column(
+                                        modifier = Modifier.padding(vertical = 4.dp).weight(1f).clickable {
+                                            openActivity(context, product)
+                                        }
+                                    ) {
                                         ProductCard(
-                                            product = searchResults[index],
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .clickable {
-                                                    openActivity(context, searchResults[index])
-                                                }
+                                            product = product
                                         )
-                                    } else {
-                                        Spacer(modifier = Modifier.height(200.dp))
                                     }
+                                }
+
+                                if (row.size == 1) {
+                                    Spacer(modifier = Modifier.weight(1f))
                                 }
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(20.dp))
                     }
                 }
             }
@@ -393,5 +407,5 @@ fun SearchPage(modifier: Modifier = Modifier, products: MutableList<Product>) {
 @Preview(showBackground = true)
 @Composable
 fun SearchPreview() {
-    SearchPage(Modifier, mutableListOf<Product>())
+    SearchPage(Modifier, mutableListOf<Product>(), "")
 }

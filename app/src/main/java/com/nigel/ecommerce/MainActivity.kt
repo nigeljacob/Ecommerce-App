@@ -31,11 +31,14 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.SwipeRefreshState
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.nigel.ecommerce.activities.WelcomeActivity
@@ -51,6 +54,7 @@ import com.nigel.ecommerce.repository.AuthRepository
 import com.nigel.ecommerce.repository.ProductRepository
 import com.nigel.ecommerce.ui.theme.EcommerceTheme
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
@@ -72,10 +76,14 @@ class MainActivity : ComponentActivity() {
         setContent {
             EcommerceTheme {
                 Surface {
-                    MainLayout()
+                    MainLayout({closeActivity()})
                 }
             }
         }
+    }
+
+    private fun closeActivity() {
+        finish()
     }
 }
 
@@ -92,9 +100,8 @@ private fun getCartItemsProducts(context: Context): List<Product> {
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-fun MainLayout() {
+fun MainLayout(onClose: () -> Unit) {
 
     // get cart count from shared preference
 
@@ -129,72 +136,98 @@ fun MainLayout() {
 
     val authRepository = AuthRepository(context)
 
-    LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) {
-            val categoriesFromDB = productRepository.getAllCategories(context)
-            categories.addAll(categoriesFromDB)
-            val productsFromDB = productRepository.getAllProducts(context)
-            products.addAll(productsFromDB)
-            userDetails = authRepository.getUserDetails()
+    var isRefreshing by remember { mutableStateOf(true) }
+
+    var searchText by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit, isRefreshing) {
+        if(isRefreshing) {
+            withContext(Dispatchers.IO) {
+                categories.clear()
+                products.clear()
+                userDetails = authRepository.getUserDetails()
+                println(userDetails?.name)
+                val categoriesFromDB = productRepository.getAllCategories(context)
+                categories.addAll(categoriesFromDB)
+                val productsFromDB = productRepository.getAllProducts(context)
+                products.addAll(productsFromDB)
+                isRefreshing = false
+            }
         }
     }
 
     EcommerceTheme {
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            bottomBar = {
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.background
-                ) {
-                    navItems.forEachIndexed { index, navItem ->
-                        NavigationBarItem(
-                            selected = selectedIndex == index,
-                            onClick = {
-                                selectedIndex = index
-                            },
-                            icon = {
-                                BadgedBox(badge = {
-                                    if (navItem.badgeCount > 0)
-                                        Badge {
-                                            Text(text = navItem.badgeCount.toString())
-                                        }
-                                }) {
-                                    Icon(
-                                        imageVector = navItem.icon,
-                                        contentDescription = "Icon",
-                                        tint = if (selectedIndex == index) primaryColor else grayColor
+        SwipeRefresh(
+            state = SwipeRefreshState(isRefreshing),
+            onRefresh = {
+                // Simulate a network call or data refresh
+                isRefreshing = true
+            }
+        ) {
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
+                bottomBar = {
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.background
+                    ) {
+                        navItems.forEachIndexed { index, navItem ->
+                            NavigationBarItem(
+                                selected = selectedIndex == index,
+                                onClick = {
+                                    selectedIndex = index
+                                },
+                                icon = {
+                                    BadgedBox(badge = {
+                                        if (navItem.badgeCount > 0)
+                                            Badge {
+                                                Text(text = navItem.badgeCount.toString())
+                                            }
+                                    }) {
+                                        Icon(
+                                            imageVector = navItem.icon,
+                                            contentDescription = "Icon",
+                                            tint = if (selectedIndex == index) primaryColor else grayColor
+                                        )
+                                    }
+                                },
+                                label = {
+                                    Text(
+                                        text = navItem.label,
+                                        color = if (selectedIndex == index) primaryColor else grayColor
                                     )
-                                }
-                            },
-                            label = {
-                                Text(
-                                    text = navItem.label,
-                                    color = if (selectedIndex == index) primaryColor else grayColor
+                                },
+                                alwaysShowLabel = true,
+                                colors = NavigationBarItemDefaults.colors(
+                                    indicatorColor = Color.Transparent
                                 )
-                            },
-                            alwaysShowLabel = true,
-                            colors = NavigationBarItemDefaults.colors(
-                                indicatorColor = Color.Transparent
                             )
-                        )
+                        }
                     }
                 }
+            ) { innerPadding ->
+                ContentScreen(modifier = Modifier.padding(innerPadding), selectedIndex, products, categories, userDetails, onClose, searchText, { text ->
+                    selectedIndex = 1
+                    searchText = text
+                })
             }
-        ) { innerPadding ->
-//
-            ContentScreen(modifier = Modifier.padding(innerPadding), selectedIndex, products, categories)
         }
     }
 }
 
+@Preview(showBackground = true)
+@Composable
+fun MainLayoutPreview() {
+    MainLayout({})
+}
+
 
 @Composable
-fun ContentScreen(modifier: Modifier = Modifier, selectedIndex : Int, products: MutableList<Product>, categores: MutableList<Category>) {
+fun ContentScreen(modifier: Modifier = Modifier, selectedIndex : Int, products: MutableList<Product>, categores: MutableList<Category>, userDetails: User?, onClose: () -> Unit, searchText: String, search: (text: String) -> Unit) {
 
     when(selectedIndex){
-        0-> HomePage(modifier, products, categores)
-        1-> SearchPage(modifier, products)
-        2-> CartPage()
-        3-> ProfilePage()
+        0-> HomePage(modifier, products, categores, search)
+        1-> SearchPage(modifier, products, searchText)
+        2-> CartPage(modifier, userDetails!!.id!!)
+        3-> ProfilePage(modifier, userDetails, onClose)
     }
 }

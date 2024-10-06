@@ -1,13 +1,23 @@
 package com.nigel.ecommerce.repository
 
 import android.content.Context
+import com.google.gson.Gson
+import com.google.gson.JsonObject
+import com.google.gson.reflect.TypeToken
 import com.nigel.ecommerce.models.Category
+import com.nigel.ecommerce.models.Order
+import com.nigel.ecommerce.models.OrderItem
 import com.nigel.ecommerce.models.Product
+import com.nigel.ecommerce.models.Review
 import com.nigel.ecommerce.services.ApiService
 import com.nigel.ecommerce.utils.SharedPreferenceHelper
+import org.json.JSONArray
+import org.json.JSONObject
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Header
+import java.util.Objects
+import java.util.function.DoubleUnaryOperator
 
 class ProductRepository(context: Context) {
 
@@ -72,9 +82,9 @@ class ProductRepository(context: Context) {
         val response = apiService.getAllCategories(token).execute()
         if(response.isSuccessful) {
             val tempProductsArray = response.body() as List<Map<String, Any>>
-            println(tempProductsArray)
             for(product in tempProductsArray) {
                 val newCategory = Category(
+                    product.get("id") as String,
                     product.get("name") as String,
                     getCategoryImage(product.get("name") as String)
                 )
@@ -85,6 +95,130 @@ class ProductRepository(context: Context) {
         }
 
         return categories
+    }
+
+    suspend fun getOrderHistory(context: Context, id: String): MutableList<Order> {
+        val orders = mutableListOf<Order>()
+        val token = "Bearer " + SharedPreferenceHelper.getAccessToken(context)
+        val response = apiService.getUserOrders(token, id).execute()
+        val message = response.body()?.get("message") as String?
+        if(response.isSuccessful) {
+            if(message.equals("Recived successfully")) {
+                val tempOrderArray = response.body()?.get("data") as List<Map<String, Any>>
+                println(tempOrderArray)
+                for(order in tempOrderArray) {
+                    val newOrder = Order(
+                        order.get("orderId") as String,
+                        order.get("orderNo") as String,
+                        order.get("customerNo") as String,
+                        order.get("deliveryAddress") as String,
+                        order.get("orderDate") as String,
+                        order.get("status") as String,
+                        (order.get("orderLines") as List<Map<String, Any>>).map { orderItem ->
+                            OrderItem(
+                                orderItem.get("orderLineNo") as String,
+                                orderItem.get("productNo") as String,
+                                orderItem.get("vendorNo") as String,
+                                orderItem.get("orderNo") as String,
+                                orderItem.get("status") as String,
+                                orderItem.get("qty") as Double,
+                                orderItem.get("unitPrice") as Double,
+                                orderItem.get("total") as Double,
+                                orderItem.get("productName") as String,
+                                orderItem.get("vendorName") as String
+                            )
+                        }
+                    )
+
+                    orders.add(newOrder)
+            }
+
+            }
+        } else {
+            println(response)
+
+        }
+
+        return orders
+    }
+
+    suspend fun getProductById(context: Context, id: String): Product? {
+        var product: Product? = null
+        val token = "Bearer " + SharedPreferenceHelper.getAccessToken(context)
+        val response = apiService.getProductByID(token, id).execute()
+        if(response.isSuccessful) {
+            println(response)
+            val tempProduct = response.body()?.get("data") as Map<String, Any>?
+            if(tempProduct != null) {
+                product = Product(
+                    tempProduct.get("id") as String,
+                    tempProduct.get("name") as String,
+                    tempProduct.get("images") as List<String>,
+                    tempProduct.get("category") as String,
+                    tempProduct.get("subCategory") as String,
+                    tempProduct.get("price") as Double,
+                    tempProduct.get("description") as String,
+                    tempProduct.get("active") as Boolean,
+                    tempProduct.get("stockCount") as Double,
+                    tempProduct.get("vendorId") as String,
+                    tempProduct.get("lowStockThreshold") as Double,
+                    tempProduct.get("isPartOfPendingOrder") as Boolean,
+                    tempProduct.get("subCategoryName") as String?,
+                )
+            }
+        }
+
+        return product
+    }
+
+
+    suspend fun addReview(context: Context, review: Map<String, Any>, order: Order): Boolean {
+
+        val token = "Bearer " + SharedPreferenceHelper.getAccessToken(context)
+        val response = apiService.addReview(token, review).execute()
+        println(response.body()?.get("message"))
+        if(response.isSuccessful) {
+            return true
+        } else {
+            println(response)
+        }
+        return false
+    }
+
+    suspend fun getCustomerReviews(context: Context, id: String): MutableList<Review> {
+        val reviews = mutableListOf<Review>()
+        val token = "Bearer " + SharedPreferenceHelper.getAccessToken(context)
+        val response = apiService.getCustomerFeedback(token).execute()
+        if(response.isSuccessful) {
+            val tmpReviewArray = response.body()?.get("data") as List<Map<String, Any>>
+            for(review in tmpReviewArray) {
+                val newReview = Review(
+                    review.get("id") as String? ?: "",
+                    review.get("customerId") as String? ?: "",
+                    review.get("productId") as String? ?: "",
+                    review.get("message") as String? ?: "No Message",
+                    review.get("rating") as Double? ?: 0.00,
+                )
+
+                reviews.add(newReview)
+            }
+        }
+
+        return reviews
+    }
+
+    suspend fun createOrder(context: Context, order: Map<String, Any>): Boolean {
+        val token = "Bearer " + SharedPreferenceHelper.getAccessToken(context)
+        val requestBody = order
+        val response = apiService.createOrder(token, requestBody).execute()
+        if(response.isSuccessful) {
+            return true
+        } else {
+            println(response)
+            println(response.body())
+        }
+
+        return false
     }
 
 }

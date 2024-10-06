@@ -1,5 +1,6 @@
 package com.nigel.ecommerce.activities
 
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -9,6 +10,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,35 +25,48 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.nigel.ecommerce.MainActivity
 import com.nigel.ecommerce.R
 import com.nigel.ecommerce.activities.ui.theme.EcommerceTheme
+import com.nigel.ecommerce.repository.AuthRepository
+import com.nigel.ecommerce.utils.SharedPreferenceHelper
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class RegisterActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,9 +86,14 @@ class RegisterActivity : ComponentActivity() {
     }
 }
 
-private fun openActivity(context: Context) {
-    val intent: Intent = Intent(context, RegisterActivity::class.java)
-    context.startActivity(intent)
+private fun openActivity(context: Context, type: String) {
+    if(type.equals("Login")) {
+        val intent: Intent = Intent(context, LoginActivity::class.java)
+        context.startActivity(intent)
+    } else {
+        val intent: Intent = Intent(context, MainActivity::class.java)
+        context.startActivity(intent)
+    }
 }
 
 @Composable
@@ -91,12 +111,51 @@ fun RegisterActivityLayout(onClose: () -> Unit) {
 
     var containerHeight by remember { mutableStateOf(0) }
 
+    var focusManager = LocalFocusManager.current
+
+    val scope = rememberCoroutineScope()
+
+    var alertTitle by remember { mutableStateOf("") }
+
+    var alertMessage by remember { mutableStateOf("") }
+
+    var showAlert by remember { mutableStateOf(false) }
+
+    val builder = AlertDialog.Builder(context)
+
+    var showProgress by remember { mutableStateOf(false) }
+
+    val authRepository = AuthRepository(context)
+
+    LaunchedEffect(showAlert) {
+        if(showAlert) {
+            showProgress = false
+            builder.setTitle(alertTitle)
+            builder.setMessage(alertMessage)
+            builder.setPositiveButton("OK") { dialog, _ ->
+                showAlert = false
+                if(alertMessage.equals("Registration Successful. You can login to your account once it's activated.")) {
+                    onClose()
+                }
+                dialog.dismiss()
+            }
+            builder.create().show()
+        }
+    }
+
     EcommerceTheme {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.secondaryContainer)
+                .clickable(
+                    onClick = {
+                        focusManager.clearFocus()
+                    },
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                )
         ) {
             Box(
                 modifier = Modifier
@@ -184,10 +243,17 @@ fun RegisterActivityLayout(onClose: () -> Unit) {
                                 onValueChange = {
                                     name = it
                                 },
-                                textStyle = TextStyle(fontSize = 15.sp),
+                                textStyle = TextStyle(fontSize = 15.sp, color = MaterialTheme.colorScheme.onPrimary),
                                 keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Text
-                                )
+                                    keyboardType = KeyboardType.Text,
+                                    imeAction = ImeAction.Next
+                                ),
+                                keyboardActions = KeyboardActions (
+                                    onNext = {
+                                        focusManager.moveFocus(FocusDirection.Next)
+                                    }
+                                ),
+                                modifier = Modifier.fillMaxWidth()
                             )
                             if(name == "") {
                                 Text("Name", color = Color(0xffA7A7A7), fontSize = 15.sp)
@@ -209,10 +275,17 @@ fun RegisterActivityLayout(onClose: () -> Unit) {
                                 onValueChange = {
                                     email = it
                                 },
-                                textStyle = TextStyle(fontSize = 15.sp),
+                                textStyle = TextStyle(fontSize = 15.sp, color = MaterialTheme.colorScheme.onPrimary),
                                 keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Email
-                                )
+                                    keyboardType = KeyboardType.Email,
+                                    imeAction = ImeAction.Next
+                                ),
+                                keyboardActions = KeyboardActions (
+                                    onNext = {
+                                        focusManager.moveFocus(FocusDirection.Next)
+                                    }
+                                ),
+                                modifier = Modifier.fillMaxWidth()
                             )
                             if(email == "") {
                                 Text("Email", color = Color(0xffA7A7A7), fontSize = 15.sp)
@@ -234,10 +307,17 @@ fun RegisterActivityLayout(onClose: () -> Unit) {
                                 onValueChange = {
                                     password = it
                                 },
-                                textStyle = TextStyle(fontSize = 15.sp),
+                                textStyle = TextStyle(fontSize = 15.sp, color = MaterialTheme.colorScheme.onPrimary),
                                 keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Password
+                                    keyboardType = KeyboardType.Password,
+                                    imeAction = ImeAction.Next
                                 ),
+                                keyboardActions = KeyboardActions (
+                                    onNext = {
+                                        focusManager.moveFocus(FocusDirection.Next)
+                                    }
+                                ),
+                                modifier = Modifier.fillMaxWidth()
                             )
                             if(password == "") {
                                 Text("Password", color = Color(0xffA7A7A7), fontSize = 15.sp)
@@ -259,10 +339,17 @@ fun RegisterActivityLayout(onClose: () -> Unit) {
                                 onValueChange = {
                                     confirmPassword = it
                                 },
-                                textStyle = TextStyle(fontSize = 15.sp),
+                                textStyle = TextStyle(fontSize = 15.sp, color = MaterialTheme.colorScheme.onPrimary),
                                 keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Password
+                                    keyboardType = KeyboardType.Password,
+                                    imeAction = ImeAction.Done
                                 ),
+                                keyboardActions = KeyboardActions (
+                                    onNext = {
+                                        focusManager.clearFocus()
+                                    }
+                                ),
+                                modifier = Modifier.fillMaxWidth()
                             )
                             if(confirmPassword == "") {
                                 Text("Confirm Password", color = Color(0xffA7A7A7), fontSize = 15.sp)
@@ -284,8 +371,69 @@ fun RegisterActivityLayout(onClose: () -> Unit) {
                             .height(50.dp)
                             .clip(RoundedCornerShape(10.dp))
                             .background(Color(0xFFc3e703))
+                            .clickable {
+                                if(!showProgress) {
+                                    showProgress = true
+                                    if(name.trim().isEmpty()) {
+                                        alertTitle = "Ooops!"
+                                        alertMessage = "Name is Missing"
+                                        showAlert = true
+                                    } else if(email.isEmpty() || !email.contains("@")) {
+                                        alertTitle = "Ooops!"
+                                        if(email.isEmpty()) {
+                                            alertMessage = "Email is Missing"
+                                        } else {
+                                            alertMessage = "Invalid Email"
+                                        }
+                                        showAlert = true
+                                    } else if (password.trim().isEmpty() || confirmPassword.trim().isEmpty()) {
+                                        alertTitle = "Ooops!"
+                                        alertMessage = "Password is Missing"
+                                        showAlert = true
+                                    } else if(!password.equals(confirmPassword)) {
+                                        alertTitle = "Ooops!"
+                                        alertMessage = "Password don't match"
+                                        showAlert = true
+                                    } else {
+                                        scope.launch {
+                                            withContext(Dispatchers.IO) {
+                                                authRepository.signUp(
+                                                    name,
+                                                    email,
+                                                    password,
+                                                ) { success, message ->
+                                                    println(message)
+                                                    if (success) {
+                                                        alertTitle = "Success"
+                                                        alertMessage = "Registration Successful. You can login to your account once it's activated."
+                                                        showAlert = true
+                                                    } else {
+                                                        if (message.equals("Email already in use. Try Login")) {
+                                                            alertTitle = "Email Already in Use"
+                                                            alertMessage =
+                                                                "The user email already exists. Try signing in to your account"
+                                                        } else if (message.equals("Invalid password")) {
+                                                            alertTitle = "Invalid Password"
+                                                            alertMessage = "The Password you entered is Inavlid"
+                                                        } else {
+                                                            alertTitle = "Ooops!"
+                                                            alertMessage =
+                                                                "Something went wrong, try again later"
+                                                        }
+                                                        showAlert = true
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                     ) {
-                        Text("Sign Up", fontWeight = FontWeight.Bold, color = Color.Black, fontSize = 13.sp)
+                        if(showProgress) {
+                            CircularProgressIndicator(color = Color(0xff000000))
+                        } else {
+                            Text("Register", fontWeight = FontWeight.Bold, color = Color.Black, fontSize = 13.sp)
+                        }
                     }
                 }
 
@@ -298,7 +446,7 @@ fun RegisterActivityLayout(onClose: () -> Unit) {
                 ) {
                     Text("Already have an account? ", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     Text("Login", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.clickable {
-                        openActivity(context)
+                        openActivity(context, "Login")
                         onClose()
                     })
                 }

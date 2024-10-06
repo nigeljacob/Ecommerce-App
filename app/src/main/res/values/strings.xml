@@ -4,4 +4,10 @@
     <string name="title_activity_login">LoginActivity</string>
     <string name="title_activity_register">RegisterActivity</string>
     <string name="title_activity_welcome">WelcomeActivity</string>
+    <string name="title_activity_orders">OrdersActivity</string>
+    <string name="title_activity_order_view">OrderViewActivity</string>
+    <string name="title_activity_review">Review</string>
+    <string name="title_activity_checkout">CheckoutActivity</string>
+    <string name="title_activity_notification">NotificationActivity</string>
+    <string name="title_activity_see_all">SeeAllActivity</string>
 </resources>
