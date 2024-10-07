@@ -31,10 +31,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -42,8 +44,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -77,6 +81,11 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.nigel.ecommerce.activities.ui.theme.EcommerceTheme
 import com.nigel.ecommerce.models.Product
+import com.nigel.ecommerce.models.Review
+import com.nigel.ecommerce.repository.ProductRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.max
 import kotlin.math.min
 
@@ -194,6 +203,10 @@ fun ProductViewActivityLayout(onClose: () -> Unit) {
 
     var viewFullDescription by rememberSaveable { mutableStateOf(false) }
 
+    val review = remember { mutableStateListOf<Review>() }
+
+    var refresh by remember { mutableStateOf(true) }
+
     val annotatedString = buildAnnotatedString {
         // Base text without glow effect
         withStyle(
@@ -219,6 +232,19 @@ fun ProductViewActivityLayout(onClose: () -> Unit) {
             )
         ) {
             append("Read More")
+        }
+    }
+
+    val productRepository = ProductRepository(context)
+
+    LaunchedEffect(Unit, refresh) {
+        withContext(Dispatchers.IO) {
+            if(refresh) {
+                review.clear()
+                val customerReviews = productRepository.getProductReviews(context, product.id)
+                review.addAll(customerReviews)
+                refresh = false
+            }
         }
     }
 
@@ -352,7 +378,69 @@ fun ProductViewActivityLayout(onClose: () -> Unit) {
                         }
                     }
 
-                    // other contents
+                    Column(
+                    ) {
+                        Text("All Reviews", fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp, bottom = 10.dp))
+
+                        Column(
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                        ) {
+
+                            if(refresh) {
+                                Column(
+                                    verticalArrangement = Arrangement.Center,
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.fillMaxWidth().padding(top = 10.dp)
+                                ) {
+                                    CircularProgressIndicator(color = Color(0xFFc3e703))
+                                }
+                            } else {
+                                if(review.size > 0) {
+                                    repeat(review.size) { index ->
+
+                                        var reviewItem = review[index]
+
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(MaterialTheme.colorScheme.secondaryContainer)
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
+                                            ) {
+                                                Column(
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    Text(reviewItem.message, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                                    Text(reviewItem.rating.toString(), fontSize = 13.sp, color = if(review[index].rating > 4.0) Color(0xff4bb543) else if (review[index].rating > 1.0 && review[index].rating < 4.0) Color(0xffffb343) else Color(0xffff0000), fontWeight = FontWeight.Bold)
+                                                }
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.fillMaxWidth().height(10.dp))
+
+                                        if(refresh) {
+                                            CircularProgressIndicator(color = Color(0xFFc3e703))
+                                        }
+
+                                    }
+                                } else {
+                                    Column(
+                                        verticalArrangement = Arrangement.Center,
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.fillMaxWidth().padding(top = 10.dp)
+                                    ) {
+                                        Text("No Reviews Yet", color = Color(0xffa7a7a7), fontSize = 13.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(100.dp).fillMaxWidth())
                 }
@@ -382,7 +470,7 @@ fun ProductViewActivityLayout(onClose: () -> Unit) {
                         Text("Add to Cart", fontWeight = FontWeight.Bold, color = Color.Black)
                     }
 
-                    Text("Delivery on 26 October", fontSize = 14.sp, modifier = Modifier.padding(top = 5.dp, bottom = 30.dp))
+                    Text("Delivery in 3 Days", fontSize = 14.sp, modifier = Modifier.padding(top = 5.dp, bottom = 30.dp))
                 }
             }
         }

@@ -110,7 +110,7 @@ fun MainLayout(onClose: () -> Unit) {
     val navItems = listOf(
         NavItem("Home", Icons.Default.Home, 0),
         NavItem("Search", Icons.Default.Search, 0),
-        NavItem("Cart", Icons.Default.ShoppingCart, 2),
+        NavItem("Cart", Icons.Default.ShoppingCart, 0),
         NavItem("Profile", Icons.Default.AccountCircle, 0)
     )
 
@@ -160,7 +160,6 @@ fun MainLayout(onClose: () -> Unit) {
         SwipeRefresh(
             state = SwipeRefreshState(isRefreshing),
             onRefresh = {
-                // Simulate a network call or data refresh
                 isRefreshing = true
             }
         ) {

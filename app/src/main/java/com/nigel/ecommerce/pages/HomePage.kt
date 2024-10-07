@@ -393,9 +393,11 @@ fun HomePage(modifier: Modifier = Modifier, products: MutableList<Product>, cate
                                                 val categoryProduct = mutableListOf<Product>()
 
                                                 for(product in products) {
+
                                                     if(product.category.equals(category.id)) {
                                                         categoryProduct.add(product)
                                                     }
+
                                                 }
 
                                                 openShowAll(context, categoryProduct, "Category", category.name + "s")
@@ -466,6 +468,17 @@ fun HomePage(modifier: Modifier = Modifier, products: MutableList<Product>, cate
                                 for (product in row) {
                                     Column(
                                         modifier = Modifier.padding(vertical = 4.dp).weight(1f).clickable {
+                                            for(product in products) {
+                                                val categoryId = product.category
+                                                println(categoryId)
+                                                for(category in categories) {
+                                                    println(category.id)
+                                                    if(category.id.equals(categoryId)) {
+                                                        product.category = category.name
+                                                        break;
+                                                    }
+                                                }
+                                            }
                                             openActivity(context, product)
                                         }
                                     ) {

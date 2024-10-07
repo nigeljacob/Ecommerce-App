@@ -8,9 +8,10 @@ data class Order(
     val orderId: String,
     val orderNo: String,
     val customerNo: String,
-    val deliveryAddress: String,
+    var deliveryAddress: String,
     val orderDate: String,
     val status: String,
+    var isCancelRequested: Boolean?,
     var orderLines: List<OrderItem>,
 ) : Serializable {
     // Convert Order object to a JSON object

@@ -69,6 +69,8 @@ import com.nigel.ecommerce.repository.ProductRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.Date
 
 class CheckoutActivity : ComponentActivity() {
@@ -87,6 +89,12 @@ class CheckoutActivity : ComponentActivity() {
     private fun closeActivity() {
         finish()
     }
+}
+
+private fun getCurrentFormattedDate(): String {
+    val currentDate = LocalDate.now()
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    return currentDate.format(formatter)
 }
 
 @Composable
@@ -125,6 +133,7 @@ fun CheckoutActivityLayout(onClose: () -> Unit) {
     var progress by remember { mutableStateOf(false) }
 
     var userID by remember { mutableStateOf(intent?.getStringExtra("userID") ?: "") }
+
 
     LaunchedEffect(Unit) {
         val itemsIntent = intent?.getSerializableExtra("products") as List<Product>
@@ -487,7 +496,7 @@ fun CheckoutActivityLayout(onClose: () -> Unit) {
                                             addProperty("orderNo", "")
                                             addProperty("customerNo", userID)
                                             addProperty("deliveryAddress", deliveryAddress)
-                                            addProperty("orderDate", "2024-10-06")
+                                            addProperty("orderDate", getCurrentFormattedDate())
                                             addProperty("status", "Pending")
                                         }
 

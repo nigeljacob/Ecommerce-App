@@ -214,22 +214,6 @@ fun CartPage(modifier: Modifier = Modifier, id: String) {
                             .padding(top = 20.dp, start = 20.dp, end = 20.dp, bottom = 12.dp)
                     ) {
                         Text("Cart", fontSize = 25.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-
-                        Column(
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .height(55.dp)
-                                .width(55.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.secondaryContainer)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.MoreVert,
-                                contentDescription = "Icon",
-                                modifier = Modifier.width(20.dp).rotate(90.0f)
-                            )
-                        }
                     }
 
                     Column(
@@ -493,7 +477,7 @@ fun CartPage(modifier: Modifier = Modifier, id: String) {
                         .fillMaxWidth()
                         .height(50.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0xFFc3e703))
+                        .background(if(atleastOneSelected) Color(0xFFc3e703) else Color(0x77c3e703))
                         .clickable {
                             if(atleastOneSelected) {
                                 var cartItemsArray = mutableListOf<Product>()

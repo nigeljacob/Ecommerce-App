@@ -36,8 +36,11 @@ interface ApiService {
     @GET("/api/Product/{id}")
     fun getProductByID(@Header("Authorization") token: String, @Path("id") id: String): Call<Map<String, Any>>
 
-    @GET("/api/Feedback/customer")
-    fun getCustomerFeedback(@Header("Authorization") token: String): Call<Map<String, Any>>
+    @GET("/api/Feedback/customer/{productID}")
+    fun getCustomerFeedback(@Header("Authorization") token: String, @Path("productID") productID: String): Call<Map<String, Any>>
+
+    @GET("/api/Feedback/product/{productID}")
+    fun getProductReviews(@Header("Authorization") token: String, @Path("productID") productID: String): Call<Map<String, Any>>
 
     @POST("/api/Feedback/create")
     @JvmSuppressWildcards
@@ -49,5 +52,20 @@ interface ApiService {
 
     @GET("/api/User/deactivate/{id}")
     fun deactivateAccount(@Header("Authorization") token: String, @Path("id") id: String): Call<Map<String, Any>>
+
+    @PUT("/api/Feedback/update/{id}")
+    @JvmSuppressWildcards
+    fun updateReview(@Header("Authorization") token: String, @Body requestBody: Map<String, Any>, @Path("id") reviewId: String): Call<Map<String, Any>>
+
+    @PUT("/api/Order/{id}")
+    @JvmSuppressWildcards
+    fun updateOrder(@Header("Authorization") token: String, @Body requestBody: Map<String, Any>, @Path("id") id: String): Call<Map<String, Any>>
+
+    @PUT("/api/Order/request/{id}")
+    @JvmSuppressWildcards
+    fun cancelOrder(@Header("Authorization") token: String, @Path("id") id: String): Call<Map<String, Any>>
+
+    @PUT("/api/User/{id}")
+    fun updateUser(@Header("Authorization") token: String, @Path("id") id: String, @Body requestBody: Map<String, String>): Call<Map<String, Any>>
 
 }

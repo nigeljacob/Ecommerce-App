@@ -9,7 +9,7 @@ data class OrderItem(
     val vendorNo: String,
     val orderNo: String,
     val status: String,
-    val qty: Double,
+    var qty: Double,
     val unitPrice: Double,
     val total: Double,
     val productName: String,

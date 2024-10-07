@@ -152,4 +152,16 @@ class AuthRepository(private val context: Context) {
         return false
     }
 
+    suspend fun updateUser(id: String, user: Map<String, String>): Boolean {
+        val token = "Bearer " + SharedPreferenceHelper.getAccessToken(context)
+        val response = apiService.updateUser(token, id, user).execute()
+        if(response.isSuccessful) {
+            return true
+        } else {
+            println(response)
+        }
+
+        return false
+    }
+
 }

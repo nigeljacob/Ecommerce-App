@@ -1,9 +1,6 @@
 package com.nigel.ecommerce.repository
 
 import android.content.Context
-import com.google.gson.Gson
-import com.google.gson.JsonObject
-import com.google.gson.reflect.TypeToken
 import com.nigel.ecommerce.models.Category
 import com.nigel.ecommerce.models.Order
 import com.nigel.ecommerce.models.OrderItem
@@ -11,18 +8,24 @@ import com.nigel.ecommerce.models.Product
 import com.nigel.ecommerce.models.Review
 import com.nigel.ecommerce.services.ApiService
 import com.nigel.ecommerce.utils.SharedPreferenceHelper
-import org.json.JSONArray
-import org.json.JSONObject
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.Header
-import java.util.Objects
-import java.util.function.DoubleUnaryOperator
+import java.util.concurrent.TimeUnit
+
 
 class ProductRepository(context: Context) {
 
+    var okHttpClient: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(60, TimeUnit.SECONDS) // Connection timeout
+        .readTimeout(60, TimeUnit.SECONDS) // Read timeout
+        .writeTimeout(60, TimeUnit.SECONDS) // Write timeout
+        .build()
+
+
     private val retrofit = Retrofit.Builder()
         .baseUrl("http://192.168.1.9:5077")
+        .client(okHttpClient)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
@@ -114,6 +117,7 @@ class ProductRepository(context: Context) {
                         order.get("deliveryAddress") as String,
                         order.get("orderDate") as String,
                         order.get("status") as String,
+                        order.get("isCancelRequested") as Boolean?,
                         (order.get("orderLines") as List<Map<String, Any>>).map { orderItem ->
                             OrderItem(
                                 orderItem.get("orderLineNo") as String,
@@ -130,7 +134,7 @@ class ProductRepository(context: Context) {
                         }
                     )
 
-                    orders.add(newOrder)
+                    orders.add(0, newOrder)
             }
 
             }
@@ -172,7 +176,7 @@ class ProductRepository(context: Context) {
     }
 
 
-    suspend fun addReview(context: Context, review: Map<String, Any>, order: Order): Boolean {
+    suspend fun addReview(context: Context, review: Map<String, Any>): Boolean {
 
         val token = "Bearer " + SharedPreferenceHelper.getAccessToken(context)
         val response = apiService.addReview(token, review).execute()
@@ -188,7 +192,7 @@ class ProductRepository(context: Context) {
     suspend fun getCustomerReviews(context: Context, id: String): MutableList<Review> {
         val reviews = mutableListOf<Review>()
         val token = "Bearer " + SharedPreferenceHelper.getAccessToken(context)
-        val response = apiService.getCustomerFeedback(token).execute()
+        val response = apiService.getCustomerFeedback(token, id).execute()
         if(response.isSuccessful) {
             val tmpReviewArray = response.body()?.get("data") as List<Map<String, Any>>
             for(review in tmpReviewArray) {
@@ -200,7 +204,29 @@ class ProductRepository(context: Context) {
                     review.get("rating") as Double? ?: 0.00,
                 )
 
-                reviews.add(newReview)
+                reviews.add(0, newReview)
+            }
+        }
+
+        return reviews
+    }
+
+    suspend fun getProductReviews(context: Context, id: String): MutableList<Review> {
+        val reviews = mutableListOf<Review>()
+        val token = "Bearer " + SharedPreferenceHelper.getAccessToken(context)
+        val response = apiService.getProductReviews(token, id).execute()
+        if(response.isSuccessful) {
+            val tmpReviewArray = response.body()?.get("data") as List<Map<String, Any>>
+            for(review in tmpReviewArray) {
+                val newReview = Review(
+                    review.get("id") as String? ?: "",
+                    review.get("customerId") as String? ?: "",
+                    review.get("productId") as String? ?: "",
+                    review.get("message") as String? ?: "No Message",
+                    review.get("rating") as Double? ?: 0.00,
+                )
+
+                reviews.add(0, newReview)
             }
         }
 
@@ -215,10 +241,42 @@ class ProductRepository(context: Context) {
             return true
         } else {
             println(response)
-            println(response.body())
         }
 
         return false
+    }
+
+    suspend fun updateReview(context: Context, review: Map<String, Any>, id: String): Boolean {
+        val token = "Bearer " + SharedPreferenceHelper.getAccessToken(context)
+        val response = apiService.updateReview(token, review, id).execute()
+        if(response.isSuccessful) {
+            return true
+        } else {
+            println(response)
+        }
+        return false
+    }
+
+    suspend fun updateOrder(context: Context, order: Map<String, Any>, id: String): Boolean {
+        val token = "Bearer " + SharedPreferenceHelper.getAccessToken(context)
+        val response = apiService.updateOrder(token, order, id).execute()
+        if(response.isSuccessful) {
+            return true
+        } else{
+            println(response)
+            return false
+        }
+    }
+
+    suspend fun cancelOrder(context: Context, id: String): Boolean {
+        val token = "Bearer " + SharedPreferenceHelper.getAccessToken(context)
+        val response = apiService.cancelOrder(token, id).execute()
+        if(response.isSuccessful) {
+            return true
+        } else{
+            println(response)
+            return false
+        }
     }
 
 }
