@@ -250,9 +250,6 @@ fun OrderViewActivityLayout(onClose: () -> Unit) {
             builder.setMessage(alertMessage)
             builder.setPositiveButton("OK") { dialog, _ ->
                 showAlert = false
-                if(orderUpdated) {
-                    orderUpdated = false
-                }
                 focusManager.clearFocus()
                 dialog.dismiss()
             }
@@ -984,6 +981,7 @@ fun OrderViewActivityLayout(onClose: () -> Unit) {
                                                     alertMessage = "Your Order has been updated successfully"
                                                     showAlert = true
                                                     reorderProgress = false
+                                                    orderUpdated = false
                                                 } else {
                                                     reorderProgress = false
                                                 }

@@ -67,7 +67,7 @@ interface ApiService {
 
     @PUT("/api/Order/request/{id}")
     @JvmSuppressWildcards
-    fun cancelOrder(@Header("Authorization") token: String, @Path("id") id: String, @Query("id") productID: String): Call<Map<String, Any>>
+    fun cancelOrder(@Header("Authorization") token: String, @Path("id") id: String, @Query("orderId") productID: String): Call<Map<String, Any>>
 
     @PUT("/api/User/{id}")
     fun updateUser(@Header("Authorization") token: String, @Path("id") id: String, @Body requestBody: Map<String, String>): Call<Map<String, Any>>
