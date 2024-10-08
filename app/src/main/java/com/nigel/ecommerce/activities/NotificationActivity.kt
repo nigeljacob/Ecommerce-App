@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,8 +31,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,21 +72,25 @@ fun NotificationLayout() {
     val notifications = remember { mutableStateListOf<Notification>(
         Notification(
             "001",
-            "Hello",
-            "Hello",
-            false,
-            "001",
-            "2024",
-        ),
-        Notification(
-            "001",
-            "Hello",
-            "Hello",
+            "Welcome",
+            "Welcome to our store",
             true,
             "001",
             "2024",
         )
     ) }
+
+    val isDarkMode = isSystemInDarkTheme()
+
+    var textColor by remember { mutableStateOf(Color(0xff000000)) }
+
+    LaunchedEffect(isDarkMode) {
+        if (isDarkMode) {
+            textColor = Color(0xffffffff)
+        } else {
+            textColor = Color(0xff000000)
+        }
+    }
 
     val scrollState = rememberLazyListState()
 
@@ -116,13 +125,13 @@ fun NotificationLayout() {
                             imageVector = Icons.Filled.KeyboardArrowLeft,
                             contentDescription = "Icon",
                             modifier = Modifier.width(80.dp),
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            tint = textColor
                         )
                     }
 
                 }
 
-                Text("Notifications", fontSize = 30.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 20.dp), color = MaterialTheme.colorScheme.onPrimary)
+                Text("Notifications", fontSize = 30.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 20.dp), color = textColor)
 
                 Spacer(modifier = Modifier.height(20.dp))
 
@@ -169,7 +178,7 @@ fun NotificationLayout() {
                                     Column(
                                         modifier = Modifier.weight(1f)
                                     ) {
-                                        Text(notification.title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                                        Text(notification.title, fontWeight = FontWeight.Bold, color = textColor)
                                         Text(notification.message, color = Color(0xffa7a7a7), fontSize = 13.sp)
                                     }
 

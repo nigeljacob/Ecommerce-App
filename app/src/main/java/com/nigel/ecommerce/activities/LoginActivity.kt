@@ -11,6 +11,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -150,6 +151,18 @@ fun LoginActivityLayout(onClose: () -> Unit) {
 
     var isFocused by remember { mutableStateOf(false) }
 
+    val isDarkMode = isSystemInDarkTheme()
+
+    var textColor by remember { mutableStateOf(Color(0xff000000)) }
+
+    LaunchedEffect(isDarkMode) {
+        if (isDarkMode) {
+            textColor = Color(0xffffffff)
+        } else {
+            textColor = Color(0xff000000)
+        }
+    }
+
     LaunchedEffect(password) {
         passwordEncrypted = "*".repeat(password.length)
     }
@@ -276,7 +289,7 @@ fun LoginActivityLayout(onClose: () -> Unit) {
                                 onValueChange = {
                                     email = it
                                 },
-                                textStyle = TextStyle(fontSize = 15.sp, color = MaterialTheme.colorScheme.onPrimary),
+                                textStyle = TextStyle(fontSize = 15.sp, color = textColor),
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Email,
                                     imeAction = ImeAction.Next
@@ -315,7 +328,7 @@ fun LoginActivityLayout(onClose: () -> Unit) {
                                 onValueChange = {
                                     password = it
                                 },
-                                textStyle = TextStyle(fontSize = 15.sp, color = MaterialTheme.colorScheme.onPrimary),
+                                textStyle = TextStyle(fontSize = 15.sp, color = textColor),
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Password,
                                     imeAction = ImeAction.Done

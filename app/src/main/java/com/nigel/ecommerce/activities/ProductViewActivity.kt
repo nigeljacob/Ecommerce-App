@@ -207,6 +207,8 @@ fun ProductViewActivityLayout(onClose: () -> Unit) {
 
     var refresh by remember { mutableStateOf(true) }
 
+    var reviewRating by remember { mutableStateOf(0.00) }
+
     val annotatedString = buildAnnotatedString {
         // Base text without glow effect
         withStyle(
@@ -243,6 +245,7 @@ fun ProductViewActivityLayout(onClose: () -> Unit) {
                 review.clear()
                 val customerReviews = productRepository.getProductReviews(context, product.id)
                 review.addAll(customerReviews)
+                reviewRating = productRepository.getAverageReview(context, product.id)
                 refresh = false
             }
         }
@@ -334,7 +337,7 @@ fun ProductViewActivityLayout(onClose: () -> Unit) {
                                 modifier = Modifier.width(20.dp)
                             )
                             Spacer(modifier = Modifier.width(3.dp))
-                            Text("4.8", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Text(Math.round(reviewRating).toString(), fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         }
 
                         Row(

@@ -12,6 +12,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -199,6 +200,18 @@ fun OrderViewActivityLayout(onClose: () -> Unit) {
 
     var cancelRequestProgress by remember { mutableStateOf(false) }
 
+    val isDarkMode = isSystemInDarkTheme()
+
+    var textColor by remember { mutableStateOf(Color(0xff000000)) }
+
+    LaunchedEffect(isDarkMode) {
+        if (isDarkMode) {
+            textColor = Color(0xffffffff)
+        } else {
+            textColor = Color(0xff000000)
+        }
+    }
+
     LaunchedEffect(Unit, refresh) {
         if(refresh) {
             products.clear()
@@ -317,7 +330,7 @@ fun OrderViewActivityLayout(onClose: () -> Unit) {
                                     onValueChange = {
                                         reviewMessage = it
                                     },
-                                    textStyle = TextStyle(fontSize = 15.sp, color = MaterialTheme.colorScheme.onPrimary),
+                                    textStyle = TextStyle(fontSize = 15.sp, color = textColor),
                                     keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Email,
                                         imeAction = ImeAction.Next
@@ -456,7 +469,7 @@ fun OrderViewActivityLayout(onClose: () -> Unit) {
                                     onValueChange = {
                                         deliveryAddressEdit = it
                                     },
-                                    textStyle = TextStyle(fontSize = 15.sp, color = MaterialTheme.colorScheme.onPrimary),
+                                    textStyle = TextStyle(fontSize = 15.sp, color = textColor),
                                     keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Email,
                                         imeAction = ImeAction.Done
@@ -669,7 +682,7 @@ fun OrderViewActivityLayout(onClose: () -> Unit) {
                                                 Box(
                                                     modifier = Modifier.fillMaxHeight()
                                                 ) {
-                                                    if(!order.status.equals("Delivered")) {
+                                                    if(!orderItem.status.equals("Delivered")) {
                                                         Icon(
                                                             imageVector = Icons.Filled.Delete,
                                                             contentDescription = "Icon",
@@ -687,7 +700,7 @@ fun OrderViewActivityLayout(onClose: () -> Unit) {
 
                                         Spacer(modifier = Modifier.width(10.dp))
 
-                                        if(!order.status.equals("Delivered")) {
+                                        if(!orderItem.status.equals("Delivered")) {
                                             Column(
                                                 verticalArrangement = Arrangement.Center,
                                                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -769,17 +782,19 @@ fun OrderViewActivityLayout(onClose: () -> Unit) {
                         ) {
                             Text("Delivery Address: ", fontSize = 13.sp, color = Color(0xffa7a7a7))
                             Text(order.deliveryAddress, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                            Icon(
-                                imageVector = Icons.Filled.Edit,
-                                contentDescription = "Icon",
-                                modifier = Modifier.width(20.dp).clickable {
-                                    type = "updateAddress"
-                                    scope.launch {
-                                        deliveryAddressEdit = order.deliveryAddress
-                                        scaffoldState.bottomSheetState.expand()
+                            if(!order.status.equals("Delivered")) {
+                                Icon(
+                                    imageVector = Icons.Filled.Edit,
+                                    contentDescription = "Icon",
+                                    modifier = Modifier.width(20.dp).clickable {
+                                        type = "updateAddress"
+                                        scope.launch {
+                                            deliveryAddressEdit = order.deliveryAddress
+                                            scaffoldState.bottomSheetState.expand()
+                                        }
                                     }
-                                }
-                            )
+                                )
+                            }
                             Spacer(modifier = Modifier.width(10.dp))
                         }
 
@@ -790,56 +805,58 @@ fun OrderViewActivityLayout(onClose: () -> Unit) {
                             Text("Paid", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
 
-                        Column(
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.End,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
+                        if(!order.status.equals("Delivered")) {
+                            Column(
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.End,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
 
-                            if(order.isCancelRequested ?: false) {
-                                Column(
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(MaterialTheme.colorScheme.secondaryContainer)
-                                ) {
-                                    Text(if(order.status.equals("Cancelled")) "Cancelled" else "Cancel Request Pending", fontSize = 13.sp, color = Color(0xffa7a7a7), fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 5.dp, bottom = 5.dp))
-                                }
-                            } else {
-                                if(cancelRequestProgress) {
-                                    CircularProgressIndicator(color = Color.Black)
-                                } else {
+                                if(order.isCancelRequested ?: false) {
                                     Column(
                                         verticalArrangement = Arrangement.Center,
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(10.dp))
-                                            .background(Color.Red)
-                                            .clickable {
-                                                cancelRequestProgress = true
-                                                scope.launch {
-                                                    withContext(Dispatchers.IO) {
-                                                        val response = productRepository.cancelOrder(context, order.orderId)
-                                                        if(response) {
-                                                            alertTitle = "Request sent"
-                                                            alertMessage = "The cancel request has been sent"
-                                                            val tempOrder = order
-                                                            tempOrder.isCancelRequested = true
-                                                            order = tempOrder
-                                                            showAlert = true
-                                                            cancelRequestProgress = false
-                                                        } else {
-                                                            alertTitle = "Ooops!"
-                                                            alertMessage = "An error occured while sending the cancel request"
-                                                            showAlert = true
-                                                            cancelRequestProgress = false
+                                            .background(MaterialTheme.colorScheme.secondaryContainer)
+                                    ) {
+                                        Text(if(order.status.equals("Cancelled")) "Cancelled" else "Cancel Request Pending", fontSize = 13.sp, color = Color(0xffa7a7a7), fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 5.dp, bottom = 5.dp))
+                                    }
+                                } else {
+                                    if(cancelRequestProgress) {
+                                        CircularProgressIndicator(color = Color.Black)
+                                    } else {
+                                        Column(
+                                            verticalArrangement = Arrangement.Center,
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(Color.Red)
+                                                .clickable {
+                                                    cancelRequestProgress = true
+                                                    scope.launch {
+                                                        withContext(Dispatchers.IO) {
+                                                            val response = productRepository.cancelOrder(context, order.orderId)
+                                                            if(response) {
+                                                                alertTitle = "Request sent"
+                                                                alertMessage = "The cancel request has been sent"
+                                                                val tempOrder = order
+                                                                tempOrder.isCancelRequested = true
+                                                                order = tempOrder
+                                                                showAlert = true
+                                                                cancelRequestProgress = false
+                                                            } else {
+                                                                alertTitle = "Ooops!"
+                                                                alertMessage = "An error occured while sending the cancel request"
+                                                                showAlert = true
+                                                                cancelRequestProgress = false
+                                                            }
                                                         }
                                                     }
                                                 }
-                                            }
-                                    ) {
-                                        Text("Cancel Order", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 5.dp, bottom = 5.dp))
+                                        ) {
+                                            Text("Cancel Order", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 5.dp, bottom = 5.dp))
+                                        }
                                     }
                                 }
                             }

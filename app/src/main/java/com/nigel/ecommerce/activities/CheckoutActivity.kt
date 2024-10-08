@@ -1,6 +1,9 @@
 package com.nigel.ecommerce.activities
 
 import android.app.Activity
+import android.app.AlertDialog
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -8,6 +11,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -97,6 +101,36 @@ private fun getCurrentFormattedDate(): String {
     return currentDate.format(formatter)
 }
 
+private fun updateCart(context: Context, products: MutableList<Product>, quantities: MutableList<Int>, selected: MutableList<Boolean>) {
+    val sharedPreferences = context.getSharedPreferences("EcommercePreference", Context.MODE_PRIVATE)
+    val editor = sharedPreferences.edit()
+
+    println(selected)
+
+    for(index in 0 until selected.size) {
+        if(selected[index]) {
+            products.removeAt(index)
+            quantities.removeAt(index)
+        }
+    }
+
+    val gson = Gson()
+
+    // Convert the updated lists to JSON
+    val productsJson = gson.toJson(products)
+    val quantitiesJson = gson.toJson(quantities)
+
+    // Save the updated lists back to shared preferences
+    editor.putString("cartProducts", productsJson)
+    editor.putString("cartQuantities", quantitiesJson)
+    editor.apply()
+}
+
+private fun openActivity(context: Context) {
+    val intent: Intent = Intent(context, ThankyouActivity::class.java)
+    context.startActivity(intent)
+}
+
 @Composable
 fun CheckoutActivityLayout(onClose: () -> Unit) {
 
@@ -113,6 +147,8 @@ fun CheckoutActivityLayout(onClose: () -> Unit) {
     var items = remember { mutableStateListOf<Product>() }
 
     var quantityList = remember { mutableStateListOf<Int>() }
+
+    var selected = remember { mutableStateListOf<Boolean>() }
 
     var deliveryDate by remember { mutableStateOf("") }
 
@@ -134,12 +170,45 @@ fun CheckoutActivityLayout(onClose: () -> Unit) {
 
     var userID by remember { mutableStateOf(intent?.getStringExtra("userID") ?: "") }
 
+    var alertTitle by remember { mutableStateOf("") }
+
+    var alertMessage by remember { mutableStateOf("") }
+
+    var showAlert by remember { mutableStateOf(false) }
+
+    val builder = AlertDialog.Builder(context)
+
+    val isDarkMode = isSystemInDarkTheme()
+
+    var textColor by remember { mutableStateOf(Color(0xff000000)) }
+
+    LaunchedEffect(isDarkMode) {
+        if (isDarkMode) {
+            textColor = Color(0xffffffff)
+        } else {
+            textColor = Color(0xff000000)
+        }
+    }
 
     LaunchedEffect(Unit) {
         val itemsIntent = intent?.getSerializableExtra("products") as List<Product>
         val quantityListIntent = intent.getSerializableExtra("quantity") as List<Int>
+        val selectedList = intent.getSerializableExtra("selected") as List<Boolean>
         items.addAll(itemsIntent)
         quantityList.addAll(quantityListIntent)
+        selected.addAll(selectedList)
+    }
+
+    LaunchedEffect(showAlert) {
+        if(showAlert) {
+            builder.setTitle(alertTitle)
+            builder.setMessage(alertMessage)
+            builder.setPositiveButton("OK") { dialog, _ ->
+                showAlert = false
+                dialog.dismiss()
+            }
+            builder.create().show()
+        }
     }
 
     EcommerceTheme {
@@ -173,14 +242,14 @@ fun CheckoutActivityLayout(onClose: () -> Unit) {
                         Icon(
                             imageVector = Icons.Filled.KeyboardArrowLeft,
                             contentDescription = "Icon",
-                            tint = MaterialTheme.colorScheme.onPrimary,
+                            tint = textColor,
                             modifier = Modifier.width(80.dp)
                         )
                     }
 
                 }
 
-                Text("Checkout", fontSize = 30.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 20.dp, bottom = 10.dp), color = MaterialTheme.colorScheme.onPrimary)
+                Text("Checkout", fontSize = 30.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 20.dp, bottom = 10.dp), color = textColor)
 
                 Column(
                     modifier = Modifier.fillMaxWidth().verticalScroll(scrollState)
@@ -190,17 +259,17 @@ fun CheckoutActivityLayout(onClose: () -> Unit) {
                         modifier = Modifier.padding(top = 5.dp)
                     ) {
                         Text("Placed on: ", fontSize = 13.sp, color = Color(0xffa7a7a7))
-                        Text(Date().date.toString() + "/" + (Date().month + 1).toString() + "/" + Date().year.toString(), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                        Text(Date().date.toString() + "/" + (Date().month + 1).toString() + "/" + Date().year.toString(), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = textColor)
                     }
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Total Amount: ", fontSize = 13.sp, color = Color(0xffa7a7a7))
-                        Text("$" + totalAmount.toString(), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                        Text("$" + totalAmount.toString(), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = textColor)
                     }
 
-                    Text(items.size.toString() + " items", fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp, bottom = 10.dp), color = MaterialTheme.colorScheme.onPrimary)
+                    Text(items.size.toString() + " items", fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp, bottom = 10.dp), color = textColor)
 
                     repeat(items.size) { index ->
 
@@ -242,13 +311,13 @@ fun CheckoutActivityLayout(onClose: () -> Unit) {
                                 Column(
                                     verticalArrangement = Arrangement.Center
                                 ) {
-                                    Text(orderItem.title , fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(0.dp), color = MaterialTheme.colorScheme.onPrimary)
+                                    Text(orderItem.title , fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(0.dp), color = textColor)
                                     Text("Pending", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF96d1c7))
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text("Units: ", fontSize = 13.sp, color = Color(0xffa7a7a7))
-                                        Text(quantityList[index].toString(), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                                        Text(quantityList[index].toString(), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = textColor)
                                     }
                                 }
 
@@ -257,7 +326,7 @@ fun CheckoutActivityLayout(onClose: () -> Unit) {
                                     horizontalAlignment = Alignment.End,
                                     modifier = Modifier.fillMaxHeight()
                                 ) {
-                                    Text("$" + (quantityList[index] * orderItem.price).toString(), textAlign = TextAlign.End, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 6.dp).fillMaxWidth(), color = MaterialTheme.colorScheme.onPrimary)
+                                    Text("$" + (quantityList[index] * orderItem.price).toString(), textAlign = TextAlign.End, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 6.dp).fillMaxWidth(), color = textColor)
                                 }
                             }
                         }
@@ -266,23 +335,23 @@ fun CheckoutActivityLayout(onClose: () -> Unit) {
 
                     }
 
-                    Text("Order Information", fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp, bottom = 10.dp), color = MaterialTheme.colorScheme.onPrimary)
+                    Text("Order Information", fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp, bottom = 10.dp), color = textColor)
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Delivery Address: ", fontSize = 13.sp, color = Color(0xffa7a7a7))
-                        Text(deliveryAddress, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                        Text(deliveryAddress, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = textColor)
                     }
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Payment Status: ", fontSize = 13.sp, color = Color(0xffa7a7a7))
-                        Text("Pending", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                        Text("Pending", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = textColor)
                     }
 
-                    Text("Payment Details", fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp, bottom = 10.dp), color = MaterialTheme.colorScheme.onPrimary)
+                    Text("Payment Details", fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp, bottom = 10.dp), color = textColor)
 
                     Column(
                         verticalArrangement = Arrangement.Center,
@@ -305,7 +374,7 @@ fun CheckoutActivityLayout(onClose: () -> Unit) {
                                     onValueChange = {
                                         nameOnCard = it
                                     },
-                                    textStyle = TextStyle(fontSize = 15.sp, color = MaterialTheme.colorScheme.onPrimary),
+                                    textStyle = TextStyle(fontSize = 15.sp, color = textColor),
                                     keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Email,
                                         imeAction = ImeAction.Next
@@ -338,9 +407,11 @@ fun CheckoutActivityLayout(onClose: () -> Unit) {
                                 BasicTextField(
                                     value = cardNo,
                                     onValueChange = {
-                                        nameOnCard = it
+                                        if(it.length < 20) {
+                                            cardNo = it
+                                        }
                                     },
-                                    textStyle = TextStyle(fontSize = 15.sp, color = MaterialTheme.colorScheme.onPrimary),
+                                    textStyle = TextStyle(fontSize = 15.sp, color = textColor),
                                     keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Number,
                                         imeAction = ImeAction.Next
@@ -378,9 +449,11 @@ fun CheckoutActivityLayout(onClose: () -> Unit) {
                                     BasicTextField(
                                         value = cardExpy,
                                         onValueChange = {
-                                            cardExpy = it
+                                            if(it.length < 6) {
+                                                cardExpy = it
+                                            }
                                         },
-                                        textStyle = TextStyle(fontSize = 15.sp, color = MaterialTheme.colorScheme.onPrimary),
+                                        textStyle = TextStyle(fontSize = 15.sp, color = textColor),
                                         keyboardOptions = KeyboardOptions(
                                             keyboardType = KeyboardType.Text,
                                             imeAction = ImeAction.Next
@@ -414,9 +487,11 @@ fun CheckoutActivityLayout(onClose: () -> Unit) {
                                     BasicTextField(
                                         value = securityCode,
                                         onValueChange = {
-                                            securityCode = it
+                                            if(it.length < 4) {
+                                                securityCode = it
+                                            }
                                         },
-                                        textStyle = TextStyle(fontSize = 15.sp, color = MaterialTheme.colorScheme.onPrimary),
+                                        textStyle = TextStyle(fontSize = 15.sp, color = textColor),
                                         keyboardOptions = KeyboardOptions(
                                             keyboardType = KeyboardType.Number,
                                             imeAction = ImeAction.Next
@@ -448,64 +523,67 @@ fun CheckoutActivityLayout(onClose: () -> Unit) {
                             .background(Color(0xFFc3e703))
                             .clickable {
                                 progress = true
-                                scope.launch {
-                                    withContext(Dispatchers.IO) {
-                                        val tempOrderItems = mutableListOf<Map<String, Any>>().apply {
-                                            for(item in items) {
-                                                println(item.vendorId)
-                                                val newOrderItem = mapOf(
-                                                    "orderLineNo" to "",
-                                                    "productNo" to item.id,
-                                                    "orderNo" to "",
-                                                    "vendorNo" to item.vendorId,
-                                                    "status" to "Pending",
-                                                    "qty" to quantityList[items.indexOf(item)],
-                                                    "unitPrice" to item.price.toFloat(),
-                                                    "total" to item.price * quantityList[items.indexOf(item)].toFloat()
-                                                )
-                                                add(newOrderItem)
-                                            }
-                                        }
+                                if(nameOnCard.isEmpty() || nameOnCard.equals("")) {
+                                    alertTitle = "Missing Payment Details"
+                                    alertMessage = "Fill in Name on Card to continue"
+                                    showAlert = true
+                                    progress = false
 
-                                        val order: Map<String, Any> = mapOf(
-                                            "orderNo" to "",
-                                            "customerNo" to userID,
-                                            "deliveryAddress" to deliveryAddress,
-                                            "orderDate" to "2024-10-06",
-                                            "status" to "Pending",
-                                            "orderLines" to tempOrderItems
-                                        )
-
-                                        val tempOrderItemsJsonArray = JsonArray().apply {
-                                            for (item in items) {
-                                                val newOrderItem = JsonObject().apply {
-                                                    addProperty("orderLineNo", "")
-                                                    addProperty("productNo", item.id)
-                                                    addProperty("orderNo", "")
-                                                    addProperty("venderNo", item.vendorId)
-                                                    addProperty("status", "Pending")
-                                                    addProperty("qty", quantityList[items.indexOf(item)])
-                                                    addProperty("unitPrice", item.price.toFloat())
-                                                    addProperty("total", item.price * quantityList[items.indexOf(item)].toFloat())
+                                } else if(cardNo.isEmpty() || cardNo.length < 16) {
+                                    alertTitle = "Missing Payment Details"
+                                    alertMessage = "Fill in Card Number to continue"
+                                    showAlert = true
+                                    progress = false
+                                } else if(cardExpy.isEmpty() || cardExpy.length < 5) {
+                                    alertTitle = "Missing Payment Details"
+                                    alertMessage = "Fill in Card expiry to continue"
+                                    showAlert = true
+                                    progress = false
+                                } else if(securityCode.isEmpty() || securityCode.length < 3) {
+                                    alertTitle = "Missing Payment Details"
+                                    alertMessage = "Fill in Card security number to continue"
+                                    showAlert = true
+                                    progress = false
+                                } else {
+                                    scope.launch {
+                                        withContext(Dispatchers.IO) {
+                                            val tempOrderItems = mutableListOf<Map<String, Any>>().apply {
+                                                for(item in items) {
+                                                    println(item.vendorId)
+                                                    val newOrderItem = mapOf(
+                                                        "orderLineNo" to "",
+                                                        "productNo" to item.id,
+                                                        "orderNo" to "",
+                                                        "vendorNo" to item.vendorId,
+                                                        "status" to "Pending",
+                                                        "qty" to quantityList[items.indexOf(item)],
+                                                        "unitPrice" to item.price.toFloat(),
+                                                        "total" to item.price * quantityList[items.indexOf(item)].toFloat()
+                                                    )
+                                                    add(newOrderItem)
                                                 }
-                                                add(newOrderItem) // Add each JsonObject to JsonArray
                                             }
-                                        }
 
-                                        val orderJsonObject = JsonObject().apply {
-                                            addProperty("orderNo", "")
-                                            addProperty("customerNo", userID)
-                                            addProperty("deliveryAddress", deliveryAddress)
-                                            addProperty("orderDate", getCurrentFormattedDate())
-                                            addProperty("status", "Pending")
-                                        }
+                                            val order: Map<String, Any> = mapOf(
+                                                "orderNo" to "",
+                                                "customerNo" to userID,
+                                                "deliveryAddress" to deliveryAddress,
+                                                "orderDate" to getCurrentFormattedDate(),
+                                                "status" to "Pending",
+                                                "orderLines" to tempOrderItems
+                                            )
 
-                                        val response = productRepository.createOrder(context, order)
+                                            val response = productRepository.createOrder(context, order)
 
-                                        if(response) {
-                                            progress = false
-                                        } else {
-                                            progress = false
+                                            if(response) {
+                                                updateCart(context, ArrayList(items), ArrayList(quantityList), ArrayList(selected))
+                                                progress = false
+                                                openActivity(context)
+                                                onClose()
+
+                                            } else {
+                                                progress = false
+                                            }
                                         }
                                     }
                                 }

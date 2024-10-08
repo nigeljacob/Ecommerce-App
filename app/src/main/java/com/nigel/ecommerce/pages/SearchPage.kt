@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -148,6 +149,18 @@ fun SearchPage(modifier: Modifier = Modifier, products: MutableList<Product>, se
 
     var searchConducted by remember { mutableStateOf(false) }
 
+    val isDarkMode = isSystemInDarkTheme()
+
+    var textColor by remember { mutableStateOf(Color(0xff000000)) }
+
+    LaunchedEffect(isDarkMode) {
+        if (isDarkMode) {
+            textColor = Color(0xffffffff)
+        } else {
+            textColor = Color(0xff000000)
+        }
+    }
+
     LaunchedEffect(Unit) {
         if(!searchText.equals("")) {
             searchConducted = false
@@ -228,7 +241,7 @@ fun SearchPage(modifier: Modifier = Modifier, products: MutableList<Product>, se
                                     },
                                     textStyle = TextStyle(
                                         fontSize = 15.sp,
-                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        color = textColor,
                                     ),
                                     keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Text,

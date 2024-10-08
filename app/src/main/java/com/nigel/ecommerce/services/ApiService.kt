@@ -12,6 +12,7 @@ import retrofit2.http.Headers
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface ApiService {
 
@@ -42,6 +43,9 @@ interface ApiService {
     @GET("/api/Feedback/product/{productID}")
     fun getProductReviews(@Header("Authorization") token: String, @Path("productID") productID: String): Call<Map<String, Any>>
 
+    @GET("/api/Feedback/average/{productID}")
+    fun getAverageReview(@Header("Authorization") token: String, @Path("productID") productID: String): Call<Map<String, Any>>
+
     @POST("/api/Feedback/create")
     @JvmSuppressWildcards
     fun addReview(@Header("Authorization") token: String, @Body requestBody: Map<String, Any>): Call<Map<String, Any>>
@@ -63,7 +67,7 @@ interface ApiService {
 
     @PUT("/api/Order/request/{id}")
     @JvmSuppressWildcards
-    fun cancelOrder(@Header("Authorization") token: String, @Path("id") id: String): Call<Map<String, Any>>
+    fun cancelOrder(@Header("Authorization") token: String, @Path("id") id: String, @Query("id") productID: String): Call<Map<String, Any>>
 
     @PUT("/api/User/{id}")
     fun updateUser(@Header("Authorization") token: String, @Path("id") id: String, @Body requestBody: Map<String, String>): Call<Map<String, Any>>

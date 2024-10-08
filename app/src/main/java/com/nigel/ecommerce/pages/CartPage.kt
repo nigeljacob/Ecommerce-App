@@ -101,13 +101,14 @@ private fun getCartItemsQuantities(context: Context): List<Int> {
     }
 }
 
-private fun openActivity(context: Context, products: MutableList<Product>, quantities: MutableList<Int>, deliveryAddress: String, total: Double, userId: String) {
+private fun openActivity(context: Context, products: MutableList<Product>, quantities: MutableList<Int>, deliveryAddress: String, total: Double, userId: String, selected: MutableList<Boolean>) {
     val intent: Intent = Intent(context, CheckoutActivity::class.java)
     intent.putExtra("deliveryAddress", deliveryAddress)
     intent.putExtra("total", total)
     intent.putExtra("products", ArrayList(products))
     intent.putExtra("quantity", ArrayList(quantities))
     intent.putExtra("userID", userId)
+    intent.putExtra("selected", ArrayList(selected))
     context.startActivity(intent)
 }
 
@@ -482,13 +483,15 @@ fun CartPage(modifier: Modifier = Modifier, id: String) {
                             if(atleastOneSelected) {
                                 var cartItemsArray = mutableListOf<Product>()
                                 var cartQuantity = mutableListOf<Int>()
+                                var selectedArray = mutableListOf<Boolean>()
                                 for(selected in 0 until cartItemsSelected.size) {
                                     if(cartItemsSelected[selected]) {
                                         cartItemsArray.add(cartItems[selected])
                                         cartQuantity.add(cartItemsQuantity[selected])
+                                        selectedArray.add(cartItemsSelected[selected])
                                     }
                                 }
-                                openActivity(context, cartItemsArray, cartQuantity, deliveryAddress, cartTotal, id)
+                                openActivity(context, cartItemsArray, cartQuantity, deliveryAddress, cartTotal, id, selectedArray)
                             }
                         }
                 ) {

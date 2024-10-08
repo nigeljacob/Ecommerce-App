@@ -8,6 +8,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -119,6 +120,18 @@ fun ProfilePage(modifier: Modifier = Modifier, userDetails: User?, onClose: () -
 
     var showAlert by remember { mutableStateOf(false) }
 
+    val isDarkMode = isSystemInDarkTheme()
+
+    var textColor by remember { mutableStateOf(Color(0xff000000)) }
+
+    LaunchedEffect(isDarkMode) {
+        if (isDarkMode) {
+            textColor = Color(0xffffffff)
+        } else {
+            textColor = Color(0xff000000)
+        }
+    }
+
     LaunchedEffect(showAlert) {
         if(showAlert) {
             builder.setTitle(alertTitle)
@@ -160,7 +173,7 @@ fun ProfilePage(modifier: Modifier = Modifier, userDetails: User?, onClose: () -
                                 onValueChange = {
                                     nameEdit = it
                                 },
-                                textStyle = TextStyle(fontSize = 15.sp, color = MaterialTheme.colorScheme.onPrimary),
+                                textStyle = TextStyle(fontSize = 15.sp, color = textColor),
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Email,
                                     imeAction = ImeAction.Done
@@ -331,7 +344,7 @@ fun ProfilePage(modifier: Modifier = Modifier, userDetails: User?, onClose: () -
                                 Icon(
                                     imageVector = Icons.Filled.KeyboardArrowRight,
                                     contentDescription = "Icon",
-                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    tint = textColor,
                                     modifier = Modifier.width(20.dp)
                                 )
                             }

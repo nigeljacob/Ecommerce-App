@@ -10,4 +10,5 @@
     <string name="title_activity_checkout">CheckoutActivity</string>
     <string name="title_activity_notification">NotificationActivity</string>
     <string name="title_activity_see_all">SeeAllActivity</string>
+    <string name="title_activity_thankyou">ThankyouActivity</string>
 </resources>

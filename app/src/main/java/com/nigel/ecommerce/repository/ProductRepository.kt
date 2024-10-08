@@ -233,6 +233,17 @@ class ProductRepository(context: Context) {
         return reviews
     }
 
+    suspend fun getAverageReview(context: Context, id: String): Double {
+        val reviews = mutableListOf<Review>()
+        val token = "Bearer " + SharedPreferenceHelper.getAccessToken(context)
+        val response = apiService.getAverageReview(token, id).execute()
+        if(response.isSuccessful) {
+            return response.body()?.get("data") as Double
+        }
+
+        return 0.00
+    }
+
     suspend fun createOrder(context: Context, order: Map<String, Any>): Boolean {
         val token = "Bearer " + SharedPreferenceHelper.getAccessToken(context)
         val requestBody = order
@@ -270,7 +281,7 @@ class ProductRepository(context: Context) {
 
     suspend fun cancelOrder(context: Context, id: String): Boolean {
         val token = "Bearer " + SharedPreferenceHelper.getAccessToken(context)
-        val response = apiService.cancelOrder(token, id).execute()
+        val response = apiService.cancelOrder(token, id, id).execute()
         if(response.isSuccessful) {
             return true
         } else{
