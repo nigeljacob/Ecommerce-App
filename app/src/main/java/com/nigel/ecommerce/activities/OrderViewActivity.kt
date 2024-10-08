@@ -496,8 +496,8 @@ fun OrderViewActivityLayout(onClose: () -> Unit) {
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(Color(0xFF96d1c7))
                                 .clickable {
-                                    writeAddress(context, deliveryAddressEdit)
                                     orderUpdated = true
+                                    writeAddress(context, deliveryAddressEdit)
                                     alertTitle = "Success"
                                     alertMessage = "Delivery Address set. "
                                     showAlert = true
@@ -930,6 +930,7 @@ fun OrderViewActivityLayout(onClose: () -> Unit) {
                                     .clickable {
                                         scope.launch {
                                             editReview = false
+                                            type = "UpdateReview"
                                             reviewMessage = ""
                                             reviewRating = 0.0f
                                             selectedItem = "Select a Product"
