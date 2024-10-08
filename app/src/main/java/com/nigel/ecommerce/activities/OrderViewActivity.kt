@@ -898,6 +898,7 @@ fun OrderViewActivityLayout(onClose: () -> Unit) {
                                             modifier = Modifier.width(20.dp).clickable {
                                                 scope.launch {
                                                     editReview = true
+                                                    type = "UpdateReview"
                                                     selectedReview = index
                                                     reviewMessage = reviewItem.message
                                                     reviewRating = reviewItem.rating.toFloat()
