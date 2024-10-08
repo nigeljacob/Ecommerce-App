@@ -1,5 +1,6 @@
 package com.nigel.ecommerce
 
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -76,7 +77,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             EcommerceTheme {
                 Surface {
-                    MainLayout({closeActivity()})
+                    MainLayout({closeActivity()}, {finish()})
                 }
             }
         }
@@ -101,7 +102,7 @@ private fun getCartItemsProducts(context: Context): List<Product> {
 }
 
 @Composable
-fun MainLayout(onClose: () -> Unit) {
+fun MainLayout(onClose: () -> Unit, onDestroy: () -> Unit) {
 
     // get cart count from shared preference
 
@@ -140,18 +141,48 @@ fun MainLayout(onClose: () -> Unit) {
 
     var searchText by remember { mutableStateOf("") }
 
+    var error by remember { mutableStateOf(false) }
+
+    var alertTitle by remember { mutableStateOf("") }
+
+    var alertMessage by remember { mutableStateOf("") }
+
+    var showAlert by remember { mutableStateOf(false) }
+
+    val builder = AlertDialog.Builder(context)
+
+    LaunchedEffect(showAlert) {
+        if(showAlert) {
+            builder.setTitle(alertTitle)
+            builder.setMessage(alertMessage)
+            builder.setPositiveButton("Close App") { dialog, _ ->
+                showAlert = false
+                dialog.dismiss()
+                onDestroy()
+            }
+            builder.create().show()
+        }
+    }
+
     LaunchedEffect(Unit, isRefreshing) {
         if(isRefreshing) {
             withContext(Dispatchers.IO) {
-                categories.clear()
-                products.clear()
-                userDetails = authRepository.getUserDetails()
-                println(userDetails?.name)
-                val categoriesFromDB = productRepository.getAllCategories(context)
-                categories.addAll(categoriesFromDB)
-                val productsFromDB = productRepository.getAllProducts(context)
-                products.addAll(productsFromDB)
-                isRefreshing = false
+
+                try{
+                    categories.clear()
+                    products.clear()
+                    userDetails = authRepository.getUserDetails()
+                    println(userDetails?.name)
+                    val categoriesFromDB = productRepository.getAllCategories(context)
+                    categories.addAll(categoriesFromDB)
+                    val productsFromDB = productRepository.getAllProducts(context)
+                    products.addAll(productsFromDB)
+                    isRefreshing = false
+                } catch (exeption: Exception) {
+                    alertTitle = "Ooops!"
+                    alertMessage = "The app is unable to connect to it's Server. Try again later"
+                    showAlert = true
+                }
             }
         }
     }
@@ -216,7 +247,7 @@ fun MainLayout(onClose: () -> Unit) {
 @Preview(showBackground = true)
 @Composable
 fun MainLayoutPreview() {
-    MainLayout({})
+    MainLayout({}, {})
 }
 
 
